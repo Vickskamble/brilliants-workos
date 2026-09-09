@@ -28,6 +28,7 @@ import 'presentation/pages/team/member_detail_page.dart';
 import 'presentation/pages/targets/set_target_page.dart';
 import 'presentation/pages/standup/morning_plan_page.dart';
 import 'presentation/pages/standup/evening_report_page.dart';
+import 'presentation/pages/notifications/notifications_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -127,6 +128,10 @@ class _BrilliantsWorkOSAppState extends State<BrilliantsWorkOSApp> {
                 return MaterialPageRoute(builder: (_) => const MorningPlanPage());
               case '/evening-report':
                 return MaterialPageRoute(builder: (_) => const EveningReportPage());
+              case '/notifications':
+                return MaterialPageRoute(
+                  builder: (_) => const NotificationsPage(),
+                );
             }
             return null;
           },

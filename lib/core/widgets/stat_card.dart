@@ -8,6 +8,7 @@ class StatCard extends StatelessWidget {
   final Color? iconColor;
   final Color? valueColor;
   final String? subtitle;
+  final double? progress;
 
   const StatCard({
     super.key,
@@ -17,33 +18,50 @@ class StatCard extends StatelessWidget {
     this.iconColor,
     this.valueColor,
     this.subtitle,
+    this.progress,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final tint = iconColor ?? AppColors.primary;
+    final progressValue = progress?.clamp(0.0, 1.0);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D0F172A),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
-                    color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    color: tint.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(icon, size: 20, color: iconColor ?? AppColors.primary),
+                  child: Icon(icon, size: 20, color: tint),
                 ),
                 const Spacer(),
                 Text(
                   value,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
                         color: valueColor ?? AppColors.textPrimary,
+                        letterSpacing: -0.5,
                       ),
                 ),
               ],
@@ -53,15 +71,28 @@ class StatCard extends StatelessWidget {
               label,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
                   ),
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 subtitle!,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textTertiary,
                     ),
+              ),
+            ],
+            if (progressValue != null) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progressValue,
+                  minHeight: 5,
+                  backgroundColor: tint.withValues(alpha: 0.12),
+                  valueColor: AlwaysStoppedAnimation(tint),
+                ),
               ),
             ],
           ],

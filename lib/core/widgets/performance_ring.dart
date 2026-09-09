@@ -6,6 +6,11 @@ class PerformanceRing extends StatelessWidget {
   final double size;
   final double strokeWidth;
   final String? label;
+  final Color? ringColor;
+  final Color? trackColor;
+  final Color? textColor;
+  final Color? labelColor;
+  final Color? centerBackground;
 
   const PerformanceRing({
     super.key,
@@ -13,9 +18,15 @@ class PerformanceRing extends StatelessWidget {
     this.size = 80,
     this.strokeWidth = 8,
     this.label,
+    this.ringColor,
+    this.trackColor,
+    this.textColor,
+    this.labelColor,
+    this.centerBackground,
   });
 
   Color get _bandColor {
+    if (ringColor != null) return ringColor!;
     if (percentage >= 85) return AppColors.excellent;
     if (percentage >= 70) return AppColors.good;
     if (percentage >= 50) return AppColors.average;
@@ -24,9 +35,13 @@ class PerformanceRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: size,
       height: size,
+      decoration: BoxDecoration(
+        color: centerBackground ?? Colors.transparent,
+        shape: BoxShape.circle,
+      ),
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -36,7 +51,7 @@ class PerformanceRing extends StatelessWidget {
             child: CircularProgressIndicator(
               value: percentage / 100,
               strokeWidth: strokeWidth,
-              backgroundColor: AppColors.divider,
+              backgroundColor: trackColor ?? AppColors.divider,
               valueColor: AlwaysStoppedAnimation(_bandColor),
               strokeCap: StrokeCap.round,
             ),
@@ -49,7 +64,7 @@ class PerformanceRing extends StatelessWidget {
                 style: TextStyle(
                   fontSize: size * 0.22,
                   fontWeight: FontWeight.bold,
-                  color: _bandColor,
+                  color: textColor ?? _bandColor,
                 ),
               ),
               if (label != null)
@@ -57,7 +72,7 @@ class PerformanceRing extends StatelessWidget {
                   label!,
                   style: TextStyle(
                     fontSize: size * 0.12,
-                    color: AppColors.textSecondary,
+                    color: labelColor ?? AppColors.textSecondary,
                   ),
                 ),
             ],
