@@ -47,4 +47,7 @@ class StandupRepository {
 
   Future<List<TeamStandup>> getCompanyTodayStandups() =>
       _datasource.getCompanyTodayStandups();
+
+  RealtimeChannel subscribeToStandupChanges({required void Function() onChanged}) =>
+      _datasource.subscribeToStandupChanges(onChanged: onChanged);
 }

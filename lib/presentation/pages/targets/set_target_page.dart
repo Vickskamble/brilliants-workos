@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../blocs/targets/targets_bloc.dart';
 import '../../blocs/team/team_bloc.dart';
+import '../../blocs/dashboard/dashboard_bloc.dart';
 import '../../../domain/entities/profile.dart';
 
 class SetTargetPage extends StatefulWidget {
@@ -107,7 +108,10 @@ class _SetTargetPageState extends State<SetTargetPage> {
       appBar: AppBar(title: const Text('Set Target')),
       body: BlocListener<TargetsBloc, TargetsState>(
         listener: (context, state) {
-          if (state is TargetCreated) {
+if (state is TargetCreated) {
+            // Refresh targets + dashboard instantly.
+            context.read<TargetsBloc>().add(LoadTargets());
+            context.read<DashboardBloc>().add(LoadDashboard(silent: true));
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Target set successfully'),

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/dashboard/dashboard_bloc.dart';
+import '../blocs/tasks/tasks_bloc.dart';
+import '../blocs/team/team_bloc.dart';
+import '../blocs/targets/targets_bloc.dart';
+import '../blocs/standup/standup_bloc.dart';
 import 'owner/owner_dashboard.dart';
 import 'tasks/my_tasks_page.dart';
 import 'team/team_list_page.dart';
@@ -30,6 +34,33 @@ class _MainNavigationHubState extends State<MainNavigationHub> {
     super.initState();
     context.read<DashboardBloc>().add(LoadDashboard());
     context.read<DashboardBloc>().subscribeToNotifications();
+    context.read<DashboardBloc>().subscribeToLiveData();
+    context.read<TasksBloc>().subscribeToTaskChanges();
+    context.read<StandupBloc>().subscribeToStandupChanges();
+  }
+
+  void _onDestinationSelected(int index) {
+    if (index == _currentIndex && index != 0) {
+      // Re-tapping the active tab refreshes it too.
+      setState(() {});
+    } else {
+      setState(() => _currentIndex = index);
+    }
+
+    // Always refresh the tab being shown (auto, no manual pull needed).
+    switch (index) {
+      case 0:
+        context.read<DashboardBloc>().add(LoadDashboard(silent: true));
+      case 1:
+        context.read<TasksBloc>().add(LoadMyTasks(silent: true));
+        context.read<TasksBloc>().add(LoadAssignedTasks(silent: true));
+      case 2:
+        context.read<TeamBloc>().add(LoadTeamData());
+      case 3:
+        context.read<TargetsBloc>().add(LoadTargets());
+      case 4:
+        context.read<DashboardBloc>().add(LoadNotifications());
+    }
   }
 
   @override
@@ -47,7 +78,7 @@ class _MainNavigationHubState extends State<MainNavigationHub> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        onDestinationSelected: _onDestinationSelected,
         destinations: [
           const NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Dashboard'),
           const NavigationDestination(icon: Icon(Icons.task_outlined), selectedIcon: Icon(Icons.task), label: 'Tasks'),

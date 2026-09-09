@@ -19,4 +19,6 @@ class TaskRepository {
   Future<void> deleteTask(String id) => _datasource.deleteTask(id);
   Future<List<Task>> getTasksForDate(DateTime date) => _datasource.getTasksForDate(date);
   Future<List<Task>> getTeamTasks(String teamId) => _datasource.getTeamTasks(teamId);
+  RealtimeChannel subscribeToTaskChanges({required void Function() onChanged}) =>
+      _datasource.subscribeToTaskChanges(onChanged: onChanged);
 }

@@ -216,4 +216,32 @@ class DashboardDatasource {
       return Standup.fromJson(data);
     }
   }
+
+  /// Subscribe to live task changes so dashboard KPIs refresh automatically.
+  RealtimeChannel subscribeToTaskChanges({required void Function() onChanged}) {
+    final userId = _client.auth.currentUser?.id;
+    return _client
+        .channel('dash-tasks:$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'workos_tasks',
+          callback: (payload) => onChanged(),
+        )
+        .subscribe();
+  }
+
+  /// Subscribe to live stand-up changes so the team stand-up card refreshes.
+  RealtimeChannel subscribeToStandupChanges({required void Function() onChanged}) {
+    final userId = _client.auth.currentUser?.id;
+    return _client
+        .channel('dash-standups:$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'workos_daily_standups',
+          callback: (payload) => onChanged(),
+        )
+        .subscribe();
+  }
 }

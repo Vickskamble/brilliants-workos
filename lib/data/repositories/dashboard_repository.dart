@@ -25,4 +25,8 @@ class DashboardRepository {
   Future<void> markAllAsRead() => _notificationDatasource.markAllAsRead();
   RealtimeChannel subscribeToNotifications({required void Function(AppNotification) onNotification}) =>
       _notificationDatasource.subscribeToNotifications(onNotification: onNotification);
+  RealtimeChannel subscribeToTaskChanges({required void Function() onChanged}) =>
+      _dashboardDatasource.subscribeToTaskChanges(onChanged: onChanged);
+  RealtimeChannel subscribeToStandupChanges({required void Function() onChanged}) =>
+      _dashboardDatasource.subscribeToStandupChanges(onChanged: onChanged);
 }

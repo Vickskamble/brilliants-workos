@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../blocs/team/team_bloc.dart';
+import '../../blocs/dashboard/dashboard_bloc.dart';
 
 class InviteMemberPage extends StatefulWidget {
   const InviteMemberPage({super.key});
@@ -52,6 +53,10 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
               ),
             );
             if (state.status != 'IN_OTHER_COMPANY') {
+              // Refresh team + dashboard instantly.
+              context.read<TeamBloc>().add(LoadCompanyMembers());
+              context.read<TeamBloc>().add(LoadTeamData());
+              context.read<DashboardBloc>().add(LoadDashboard(silent: true));
               Navigator.pop(context);
             }
           } else if (state is TeamError) {

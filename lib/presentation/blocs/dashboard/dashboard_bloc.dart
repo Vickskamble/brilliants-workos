@@ -12,7 +12,12 @@ abstract class DashboardEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class LoadDashboard extends DashboardEvent {}
+class LoadDashboard extends DashboardEvent {
+  final bool silent;
+  LoadDashboard({this.silent = false});
+  @override
+  List<Object?> get props => [silent];
+}
 
 class LoadNotifications extends DashboardEvent {
   final bool unreadOnly;
@@ -85,7 +90,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   }
 
   Future<void> _onLoadDashboard(LoadDashboard event, Emitter<DashboardState> emit) async {
-    emit(DashboardLoading());
+    if (!event.silent) emit(DashboardLoading());
     try {
       final stats = await _repository.getDashboardStats();
       final unreadCount = await _repository.getUnreadCount();
@@ -130,6 +135,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     }
   }
 
+  RealtimeChannel? _taskChannel;
+  RealtimeChannel? _standupChannel;
+
   void subscribeToNotifications() {
     _notificationChannel?.unsubscribe();
     _notificationChannel = _repository.subscribeToNotifications(
@@ -139,9 +147,23 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     );
   }
 
+  /// Subscribe to task + stand-up changes so KPIs refresh themselves.
+  void subscribeToLiveData() {
+    _taskChannel?.unsubscribe();
+    _taskChannel = _repository.subscribeToTaskChanges(
+      onChanged: () => add(LoadDashboard(silent: true)),
+    );
+    _standupChannel?.unsubscribe();
+    _standupChannel = _repository.subscribeToStandupChanges(
+      onChanged: () => add(LoadDashboard(silent: true)),
+    );
+  }
+
   @override
   Future<void> close() {
     _notificationChannel?.unsubscribe();
+    _taskChannel?.unsubscribe();
+    _standupChannel?.unsubscribe();
     return super.close();
   }
 }

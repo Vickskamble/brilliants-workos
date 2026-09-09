@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/repositories/standup_repository.dart';
 import '../../../domain/entities/standup.dart';
 import '../../../domain/entities/team_standup.dart';
@@ -30,7 +32,12 @@ class SaveEveningReportEvent extends StandupEvent {
   List<Object?> get props => [completedToday, pendingToday, blockers];
 }
 
-class LoadCompanyStandups extends StandupEvent {}
+class LoadCompanyStandups extends StandupEvent {
+  final bool silent;
+  LoadCompanyStandups({this.silent = false});
+  @override
+  List<Object?> get props => [silent];
+}
 
 // States
 abstract class StandupState extends Equatable {
@@ -73,6 +80,7 @@ class StandupError extends StandupState {
 // BLoC
 class StandupBloc extends Bloc<StandupEvent, StandupState> {
   final StandupRepository _repository;
+  RealtimeChannel? _standupChannel;
 
   StandupBloc({required this._repository})
       : super(StandupInitial()) {
@@ -123,12 +131,26 @@ class StandupBloc extends Bloc<StandupEvent, StandupState> {
 
   Future<void> _onLoadCompanyStandups(
       LoadCompanyStandups event, Emitter<StandupState> emit) async {
-    emit(StandupLoading());
+    if (!event.silent) emit(StandupLoading());
     try {
       final standups = await _repository.getCompanyTodayStandups();
       emit(CompanyStandupsLoaded(standups));
     } catch (e) {
       emit(StandupError(e.toString()));
     }
+  }
+
+  /// Reload team stand-ups whenever someone submits a plan/report.
+  void subscribeToStandupChanges() {
+    _standupChannel?.unsubscribe();
+    _standupChannel = _repository.subscribeToStandupChanges(
+      onChanged: () => add(LoadCompanyStandups(silent: true)),
+    );
+  }
+
+  @override
+  Future<void> close() {
+    _standupChannel?.unsubscribe();
+    return super.close();
   }
 }

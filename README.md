@@ -111,8 +111,10 @@ Run in order via `supabase db push` (or the SQL editor):
 4. `supabase/migrations/0004_workos_rls.sql`
 5. `supabase/migrations/0005_workos_invites_and_notifications.sql`
 6. `supabase/migrations/0006_workos_task_actual_value.sql`
+
 7. `supabase/migrations/0007_workos_leaderboard.sql`
 
+8. `supabase/migrations/0008_workos_realtime.sql`
 ### 2. Environment
 
 Copy `.env.example` to `.env` and set credentials; also update `assets/env`:

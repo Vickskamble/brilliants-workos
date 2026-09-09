@@ -16,21 +16,35 @@ class MyTasksPage extends StatefulWidget {
 }
 
 class _MyTasksPageState extends State<MyTasksPage> {
+  bool _showAll = false;
+
   @override
   void initState() {
     super.initState();
     context.read<TasksBloc>().add(LoadMyTasks());
   }
 
+  void _onViewChanged() {
+    setState(() => _showAll = !_showAll);
+    if (_showAll) {
+      context.read<TasksBloc>().add(LoadAssignedTasks());
+    } else {
+      context.read<TasksBloc>().add(LoadMyTasks());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Tasks'),
+        title: const Text('Tasks'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => context.read<TasksBloc>().add(LoadMyTasks()),
+            tooltip: 'Refresh',
+            onPressed: () => context
+                .read<TasksBloc>()
+                .add(_showAll ? LoadAssignedTasks() : LoadMyTasks()),
           ),
         ],
       ),
@@ -44,53 +58,109 @@ class _MyTasksPageState extends State<MyTasksPage> {
             return Center(child: Text(state.message));
           }
 
+          final List<Task>? tasks;
           if (state is MyTasksLoaded) {
-            if (state.tasks.isEmpty) {
-              return const EmptyState(
-                icon: Icons.task_outlined,
-                title: 'No Tasks Today',
-                subtitle: 'You have no tasks assigned for today.',
-              );
-            }
+            tasks = state.tasks;
+          } else if (state is AssignedTasksLoaded) {
+            tasks = state.tasks;
+          } else {
+            tasks = null;
+          }
 
-            return Column(
-              children: [
-                // Summary bar
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          if (tasks == null) {
+            return const SizedBox.shrink();
+          }
+
+          final visibleTasks = tasks;
+          final completed = visibleTasks.where((t) => t.isCompleted).length;
+          final pending = visibleTasks.where((t) => t.isTodo || t.isInProgress).length;
+          final overdue = visibleTasks.where((t) => t.isOverdue).length;
+
+          return Column(
+            children: [
+              // View toggle: My Tasks / All Tasks
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(
+                        value: false,
+                        icon: Icon(Icons.person_outline, size: 18),
+                        label: Text('My Tasks'),
+                      ),
+                      ButtonSegment(
+                        value: true,
+                        icon: Icon(Icons.group_outlined, size: 18),
+                        label: Text('All Tasks'),
+                      ),
+                    ],
+                    selected: {_showAll},
+                    onSelectionChanged: (_) => _onViewChanged(),
+                    showSelectedIcon: false,
+                    style: ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      textStyle: WidgetStatePropertyAll(
+                        Theme.of(context).textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Summary bar
+              if (visibleTasks.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
-                      _SummaryChip(count: state.completedCount, label: 'Done', color: AppColors.success),
+                      _SummaryChip(count: completed, label: 'Done', color: AppColors.success),
                       const SizedBox(width: 8),
-                      _SummaryChip(count: state.pendingCount, label: 'Pending', color: AppColors.warning),
+                      _SummaryChip(count: pending, label: 'Pending', color: AppColors.warning),
                       const SizedBox(width: 8),
-                      _SummaryChip(count: state.overdueCount, label: 'Overdue', color: AppColors.error),
+                      _SummaryChip(count: overdue, label: 'Overdue', color: AppColors.error),
                       const Spacer(),
                       Text(
-                        '${state.tasks.length} tasks',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                        '${visibleTasks.length} tasks',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
                 ),
 
-                // Task list
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: state.tasks.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final task = state.tasks[index];
-                      return _TaskCard(task: task);
-                    },
-                  ),
-                ),
-              ],
-            );
-          }
-
-          return const SizedBox.shrink();
+              // Task list / empty state
+              Expanded(
+                child: visibleTasks.isEmpty
+                    ? EmptyState(
+                        icon: _showAll ? Icons.assignment_outlined : Icons.task_outlined,
+                        title: _showAll ? 'No Tasks Yet' : 'No Tasks Today',
+                        subtitle: _showAll
+                            ? 'Assign a task to your team to see it here.'
+                            : 'You have no tasks assigned for today.',
+                        action: _showAll
+                            ? ElevatedButton.icon(
+                                onPressed: () =>
+                                    Navigator.pushNamed(context, '/assign-task'),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Assign Task'),
+                              )
+                            : null,
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: visibleTasks.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) => _TaskCard(task: visibleTasks[index]),
+                      ),
+              ),
+            ],
+          );
         },
       ),
       floatingActionButton: FloatingActionButton(

@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../blocs/tasks/tasks_bloc.dart';
 import '../../blocs/team/team_bloc.dart';
+import '../../blocs/dashboard/dashboard_bloc.dart';
 import '../../../domain/entities/profile.dart';
 
 class AssignTaskPage extends StatefulWidget {
@@ -96,8 +97,12 @@ class _AssignTaskPageState extends State<AssignTaskPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Assign Task')),
       body: BlocListener<TasksBloc, TasksState>(
-        listener: (context, state) {
+listener: (context, state) {
           if (state is TaskCreated) {
+            // Refresh lists + dashboard so the new task appears instantly.
+            context.read<TasksBloc>().add(LoadMyTasks(silent: true));
+            context.read<TasksBloc>().add(LoadAssignedTasks(silent: true));
+            context.read<DashboardBloc>().add(LoadDashboard(silent: true));
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Task assigned successfully'),

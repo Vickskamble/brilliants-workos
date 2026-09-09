@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/repositories/task_repository.dart';
 import '../../../domain/entities/task.dart';
 
@@ -11,17 +13,19 @@ abstract class TasksEvent extends Equatable {
 
 class LoadMyTasks extends TasksEvent {
   final String? status;
-  LoadMyTasks({this.status});
+  final bool silent;
+  LoadMyTasks({this.status, this.silent = false});
   @override
-  List<Object?> get props => [status];
+  List<Object?> get props => [status, silent];
 }
 
 class LoadAssignedTasks extends TasksEvent {
   final String? status;
   final String? assigneeId;
-  LoadAssignedTasks({this.status, this.assigneeId});
+  final bool silent;
+  LoadAssignedTasks({this.status, this.assigneeId, this.silent = false});
   @override
-  List<Object?> get props => [status, assigneeId];
+  List<Object?> get props => [status, assigneeId, silent];
 }
 
 class LoadOverdueTasks extends TasksEvent {}
@@ -125,6 +129,7 @@ class TasksError extends TasksState {
 // BLoC
 class TasksBloc extends Bloc<TasksEvent, TasksState> {
   final TaskRepository _repository;
+  RealtimeChannel? _taskChannel;
 
   TasksBloc({required this._repository})
       : super(TasksInitial()) {
@@ -138,7 +143,7 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
   }
 
   Future<void> _onLoadMyTasks(LoadMyTasks event, Emitter<TasksState> emit) async {
-    emit(TasksLoading());
+    if (!event.silent) emit(TasksLoading());
     try {
       final tasks = await _repository.getMyTasks(status: event.status);
       final completed = tasks.where((t) => t.isCompleted).length;
@@ -151,7 +156,7 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
   }
 
   Future<void> _onLoadAssignedTasks(LoadAssignedTasks event, Emitter<TasksState> emit) async {
-    emit(TasksLoading());
+    if (!event.silent) emit(TasksLoading());
     try {
       final tasks = await _repository.getAssignedTasks(
         status: event.status,
@@ -218,5 +223,26 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     } catch (e) {
       emit(TasksError(e.toString()));
     }
+  }
+
+  /// Reload the view that's currently on screen when a task changes remotely.
+  void _onTaskChanged() {
+    final current = state;
+    if (current is MyTasksLoaded) {
+      add(LoadMyTasks(silent: true));
+    } else if (current is AssignedTasksLoaded) {
+      add(LoadAssignedTasks(silent: true));
+    }
+  }
+
+  void subscribeToTaskChanges() {
+    _taskChannel?.unsubscribe();
+    _taskChannel = _repository.subscribeToTaskChanges(onChanged: _onTaskChanged);
+  }
+
+  @override
+  Future<void> close() {
+    _taskChannel?.unsubscribe();
+    return super.close();
   }
 }

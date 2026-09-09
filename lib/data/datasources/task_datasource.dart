@@ -157,6 +157,20 @@ class TaskDatasource {
     return (data as List).map((e) => _parseTask(e)).toList();
   }
 
+  /// Subscribe to live task changes so lists refresh without manual pull.
+  RealtimeChannel subscribeToTaskChanges({required void Function() onChanged}) {
+    final userId = _client.auth.currentUser?.id;
+    return _client
+        .channel('tasks:$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'workos_tasks',
+          callback: (payload) => onChanged(),
+        )
+        .subscribe();
+  }
+
   Future<String> _getProfileId() async {
     final userId = _client.auth.currentUser!.id;
     final data = await _client

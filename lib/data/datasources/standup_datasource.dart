@@ -117,4 +117,18 @@ class StandupDatasource {
       );
     }).toList();
   }
+
+  /// Subscribe to live stand-up changes so the team stand-up card stays fresh.
+  RealtimeChannel subscribeToStandupChanges({required void Function() onChanged}) {
+    final userId = _client.auth.currentUser?.id;
+    return _client
+        .channel('standups:$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'workos_daily_standups',
+          callback: (payload) => onChanged(),
+        )
+        .subscribe();
+  }
 }

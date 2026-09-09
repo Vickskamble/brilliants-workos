@@ -60,6 +60,8 @@ class _EveningReportPageState extends State<EveningReportPage> {
         listener: (context, state) {
           if (state is StandupSaved) {
             setState(() => _saving = false);
+            // Refresh the dashboard stand-up card instantly.
+            context.read<StandupBloc>().add(LoadCompanyStandups(silent: true));
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Report submitted!'),
