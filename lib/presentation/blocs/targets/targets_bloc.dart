@@ -74,9 +74,8 @@ class TargetsError extends TargetsState {
 class TargetsBloc extends Bloc<TargetsEvent, TargetsState> {
   final TargetRepository _repository;
 
-  TargetsBloc({required TargetRepository repository})
-      : _repository = repository,
-        super(TargetsInitial()) {
+  TargetsBloc({required this._repository})
+      : super(TargetsInitial()) {
     on<LoadTargets>(_onLoad);
     on<CreateTargetEvent>(_onCreate);
     on<UpdateTargetEvent>(_onUpdate);

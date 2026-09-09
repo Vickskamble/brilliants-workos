@@ -8,19 +8,26 @@ import 'data/repositories/task_repository.dart';
 import 'data/repositories/team_repository.dart';
 import 'data/repositories/target_repository.dart';
 import 'data/repositories/dashboard_repository.dart';
+import 'data/repositories/standup_repository.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
 import 'presentation/blocs/tasks/tasks_bloc.dart';
 import 'presentation/blocs/team/team_bloc.dart';
 import 'presentation/blocs/targets/targets_bloc.dart';
 import 'presentation/blocs/dashboard/dashboard_bloc.dart';
+import 'presentation/blocs/standup/standup_bloc.dart';
 import 'presentation/pages/auth/login_page.dart';
 import 'presentation/pages/auth/signup_page.dart';
 import 'presentation/pages/auth/forgot_password_page.dart';
 import 'presentation/pages/auth/create_company_page.dart';
 import 'presentation/pages/main_navigation_hub.dart';
 import 'presentation/pages/tasks/assign_task_page.dart';
+import 'presentation/pages/tasks/task_detail_page.dart';
+import 'presentation/pages/tasks/overdue_tasks_page.dart';
 import 'presentation/pages/team/invite_member_page.dart';
+import 'presentation/pages/team/member_detail_page.dart';
 import 'presentation/pages/targets/set_target_page.dart';
+import 'presentation/pages/standup/morning_plan_page.dart';
+import 'presentation/pages/standup/evening_report_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +55,7 @@ class _BrilliantsWorkOSAppState extends State<BrilliantsWorkOSApp> {
   late final TeamRepository _teamRepository;
   late final TargetRepository _targetRepository;
   late final DashboardRepository _dashboardRepository;
+  late final StandupRepository _standupRepository;
 
   @override
   void initState() {
@@ -63,6 +71,7 @@ class _BrilliantsWorkOSAppState extends State<BrilliantsWorkOSApp> {
     _teamRepository = TeamRepository(client);
     _targetRepository = TargetRepository(client);
     _dashboardRepository = DashboardRepository(client);
+    _standupRepository = StandupRepository(client);
   }
 
   @override
@@ -74,6 +83,7 @@ class _BrilliantsWorkOSAppState extends State<BrilliantsWorkOSApp> {
         RepositoryProvider<TeamRepository>(create: (_) => _teamRepository),
         RepositoryProvider<TargetRepository>(create: (_) => _targetRepository),
         RepositoryProvider<DashboardRepository>(create: (_) => _dashboardRepository),
+        RepositoryProvider<StandupRepository>(create: (_) => _standupRepository),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -92,12 +102,34 @@ class _BrilliantsWorkOSAppState extends State<BrilliantsWorkOSApp> {
           BlocProvider<DashboardBloc>(
             create: (context) => DashboardBloc(repository: context.read<DashboardRepository>()),
           ),
+          BlocProvider<StandupBloc>(
+            create: (context) => StandupBloc(repository: context.read<StandupRepository>()),
+          ),
         ],
         child: MaterialApp(
           title: 'Brilliants Work OS',
           theme: AppTheme.light,
           debugShowCheckedModeBanner: false,
           initialRoute: '/',
+          onGenerateRoute: (settings) {
+            switch (settings.name) {
+              case '/task-detail':
+                return MaterialPageRoute(
+                  builder: (_) => TaskDetailPage(taskId: settings.arguments as String),
+                );
+              case '/member-detail':
+                return MaterialPageRoute(
+                  builder: (_) => MemberDetailPage(profileId: settings.arguments as String),
+                );
+              case '/overdue-tasks':
+                return MaterialPageRoute(builder: (_) => const OverdueTasksPage());
+              case '/morning-plan':
+                return MaterialPageRoute(builder: (_) => const MorningPlanPage());
+              case '/evening-report':
+                return MaterialPageRoute(builder: (_) => const EveningReportPage());
+            }
+            return null;
+          },
           routes: _routes,
           home: const _AppGate(),
         ),

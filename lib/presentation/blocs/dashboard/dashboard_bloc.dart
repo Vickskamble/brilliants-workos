@@ -75,9 +75,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   final DashboardRepository _repository;
   RealtimeChannel? _notificationChannel;
 
-  DashboardBloc({required DashboardRepository repository})
-      : _repository = repository,
-        super(DashboardInitial()) {
+  DashboardBloc({required this._repository})
+      : super(DashboardInitial()) {
     on<LoadDashboard>(_onLoadDashboard);
     on<LoadNotifications>(_onLoadNotifications);
     on<MarkNotificationRead>(_onMarkRead);

@@ -54,7 +54,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: state.notifications.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final notification = state.notifications[index];
                 final color = _notificationColor(notification.type);
@@ -93,6 +93,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   onTap: () {
                     if (!notification.isRead) {
                       context.read<DashboardBloc>().add(MarkNotificationRead(notification.id));
+                    }
+                    if (notification.referenceType == 'task' && notification.referenceId != null) {
+                      Navigator.pushNamed(context, '/task-detail', arguments: notification.referenceId!);
                     }
                   },
                 );

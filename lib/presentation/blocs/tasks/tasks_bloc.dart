@@ -126,9 +126,8 @@ class TasksError extends TasksState {
 class TasksBloc extends Bloc<TasksEvent, TasksState> {
   final TaskRepository _repository;
 
-  TasksBloc({required TaskRepository repository})
-      : _repository = repository,
-        super(TasksInitial()) {
+  TasksBloc({required this._repository})
+      : super(TasksInitial()) {
     on<LoadMyTasks>(_onLoadMyTasks);
     on<LoadAssignedTasks>(_onLoadAssignedTasks);
     on<LoadOverdueTasks>(_onLoadOverdueTasks);

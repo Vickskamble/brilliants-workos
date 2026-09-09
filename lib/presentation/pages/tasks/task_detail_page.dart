@@ -39,20 +39,34 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   void _onUpdateStatus(String status) async {
     setState(() => _updating = true);
 
-    Map<String, dynamic> updates = {'status': status};
+    final result = _resultController.text.trim();
+    final comment = _commentController.text.trim();
+    final actualText = _actualValueController.text.trim();
 
-    if (status == 'COMPLETED') {
-      updates['completed_at'] = DateTime.now().toIso8601String();
-      if (_resultController.text.isNotEmpty) updates['result'] = _resultController.text;
-      if (_commentController.text.isNotEmpty) updates['comment'] = _commentController.text;
-      if (_actualValueController.text.isNotEmpty) {
-        updates['actual_value'] = double.parse(_actualValueController.text);
-      }
-    }
-
-    context.read<TasksBloc>().add(UpdateTaskStatus(widget.taskId, status));
+    context.read<TasksBloc>().add(
+          UpdateTaskStatus(
+            widget.taskId,
+            status,
+            result: result.isEmpty ? null : result,
+            comment: comment.isEmpty ? null : comment,
+            actualValue: actualText.isEmpty ? null : double.tryParse(actualText),
+          ),
+        );
 
     setState(() => _updating = false);
+  }
+
+  String _friendlyStatus(String status) {
+    switch (status) {
+      case 'IN_PROGRESS':
+        return 'In Progress';
+      case 'COMPLETED':
+        return 'Completed';
+      case 'CANCELLED':
+        return 'Cancelled';
+      default:
+        return status;
+    }
   }
 
   @override
@@ -65,6 +79,14 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message), backgroundColor: AppColors.error),
             );
+          } else if (state is TaskUpdated) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Task marked as ${_friendlyStatus(state.task.status)}'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+            context.read<TasksBloc>().add(LoadTaskDetail(widget.taskId));
           }
         },
         child: BlocBuilder<TasksBloc, TasksState>(

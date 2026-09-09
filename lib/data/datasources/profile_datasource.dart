@@ -109,4 +109,56 @@ class ProfileDatasource {
       },
     );
   }
+
+  /// Invite a member by email. Returns a status map from the RPC:
+  /// 'ADDED' | 'ALREADY_MEMBER' | 'INVITED' | 'IN_OTHER_COMPANY'.
+  Future<Map<String, dynamic>> inviteMember({
+    required String email,
+    required String fullName,
+    String role = 'MEMBER',
+    String department = 'OTHER',
+  }) async {
+    final result = await _client.rpc(
+      'invite_workos_member',
+      params: {
+        'p_email': email,
+        'p_full_name': fullName,
+        'p_role': role,
+        'p_department': department,
+      },
+    );
+    return Map<String, dynamic>.from(result as Map);
+  }
+
+  /// Called right after signup: attaches the user to the company that
+  /// invited them (if a PENDING invite exists for their email).
+  Future<Map<String, dynamic>> acceptInvite(String email) async {
+    final result = await _client.rpc(
+      'accept_workos_invite',
+      params: {'p_email': email},
+    );
+    return Map<String, dynamic>.from(result as Map);
+  }
+
+  /// Performance breakdown for a member over a date range.
+  /// Returns keys: task_completion, target_achievement, on_time_rate,
+  /// overall, band, assigned, completed, completed_on_time,
+  /// target_total, target_achieved.
+  Future<Map<String, dynamic>> getPerformanceScore(
+    String profileId, {
+    DateTime? start,
+    DateTime? end,
+  }) async {
+    final s = start ?? DateTime.now().copyWith(day: 1);
+    final e = end ?? DateTime(DateTime.now().year, DateTime.now().month + 1, 0);
+    final result = await _client.rpc(
+      'get_performance_score',
+      params: {
+        'p_profile_id': profileId,
+        'p_start_date': s.toIso8601String().split('T').first,
+        'p_end_date': e.toIso8601String().split('T').first,
+      },
+    );
+    return Map<String, dynamic>.from(result as Map);
+  }
 }

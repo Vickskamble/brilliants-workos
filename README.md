@@ -19,7 +19,17 @@ Team Task + Performance + Target Management System for Brilliants.
 - 🎯 Target Management (sales, calls, leads, demos, etc.)
 - ✅ Daily Standup (morning plan + evening report)
 - 🔔 In-app Notifications (task assigned, reminders, overdue, escalation)
-- 📊 Dashboard (KPIs, team status, performance)
+- 📊 Dashboard (KPIs, team standup status, performance)
+
+## Features (V2)
+
+- 📨 Real invites — existing users added instantly, new users auto-join on signup (`workos_invites`)
+- 📈 Live per-member performance (task completion, target achievement, on-time rate, band)
+- 🚨 Automatic escalations — Day 1 employee, Day 2 manager, Day 3+ admin (trigger-driven, idempotent)
+- 🔔 Task-assignment notifications in real time
+- ✍️ Stand-up flow wired end-to-end (Morning Plan / Evening Report saved to `workos_daily_standups`)
+- 📊 Team stand-up status on the dashboard + unread alert badge on the nav
+- 🗂️ Team creation dialog + member add/remove bottom sheet
 
 ## Setup
 
@@ -31,6 +41,8 @@ Run the SQL migrations in order via Supabase SQL Editor:
 2. `supabase/migrations/0002_workos_tables.sql`
 3. `supabase/migrations/0003_workos_functions.sql`
 4. `supabase/migrations/0004_workos_rls.sql`
+5. `supabase/migrations/0005_workos_invites_and_notifications.sql`
+6. `supabase/migrations/0006_workos_task_actual_value.sql`
 
 ### 2. Configure Environment
 

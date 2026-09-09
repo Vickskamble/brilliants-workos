@@ -107,9 +107,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _repository;
   StreamSubscription<AuthState>? _authSubscription;
 
-  AuthBloc({required AuthRepository repository})
-      : _repository = repository,
-        super(AuthInitial()) {
+  AuthBloc({required this._repository})
+      : super(AuthInitial()) {
     on<AuthStarted>(_onStarted);
     on<AuthSignedUp>(_onSignUp);
     on<AuthSignedIn>(_onSignIn);
@@ -147,6 +146,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
         fullName: event.fullName,
       );
+
+      // If this email was invited to a company, attach them automatically.
+      try {
+        await _repository.acceptInvite(event.email);
+      } catch (e) {
+        // No invite is fine; swallow and fall through to normal routing.
+      }
 
       final profile = await _repository.getCurrentProfile();
       if (profile == null) {

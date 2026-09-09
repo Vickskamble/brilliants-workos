@@ -48,6 +48,7 @@ class TargetDatasource {
   }
 
   Future<Target> createTarget(Map<String, dynamic> targetData) async {
+    targetData['company_id'] ??= await _getCompanyId();
     final data = await _client
         .from('workos_targets')
         .insert(targetData)
@@ -55,6 +56,16 @@ class TargetDatasource {
         .single();
 
     return Target.fromJson(data);
+  }
+
+  Future<String> _getCompanyId() async {
+    final userId = _client.auth.currentUser!.id;
+    final data = await _client
+        .from('workos_profiles')
+        .select('company_id')
+        .eq('user_id', userId)
+        .single();
+    return data['company_id'] as String;
   }
 
   Future<Target> updateTarget(String targetId, Map<String, dynamic> updates) async {

@@ -38,6 +38,7 @@ class TeamDatasource {
     final data = await _client
         .from('workos_teams')
         .insert({
+          'company_id': await _getCompanyId(),
           'name': name,
           'description': description,
           'manager_id': managerId,
@@ -46,6 +47,16 @@ class TeamDatasource {
         .single();
 
     return Team.fromJson(data);
+  }
+
+  Future<String> _getCompanyId() async {
+    final userId = _client.auth.currentUser!.id;
+    final data = await _client
+        .from('workos_profiles')
+        .select('company_id')
+        .eq('user_id', userId)
+        .single();
+    return data['company_id'] as String;
   }
 
   Future<Team> updateTeam(String teamId, Map<String, dynamic> updates) async {

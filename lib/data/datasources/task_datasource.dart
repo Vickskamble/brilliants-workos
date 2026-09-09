@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/task.dart';
 
@@ -69,8 +70,9 @@ class TaskDatasource {
 
   /// Create a new task
   Future<Task> createTask(Map<String, dynamic> taskData) async {
-    final profileId = await _getProfileId();
-    taskData['assigned_by'] = profileId;
+    final context = await _getMyContext();
+    taskData['assigned_by'] = context.$1;
+    taskData['company_id'] ??= context.$2;
 
     final data = await _client
         .from('workos_tasks')
@@ -108,37 +110,22 @@ class TaskDatasource {
       if (result != null) updates['result'] = result;
       if (comment != null) updates['comment'] = comment;
       if (actualValue != null) updates['actual_value'] = actualValue;
-      // Update target current_value if task has a target
-      final task = await getTask(taskId);
-      if (task != null && task.assignedTo != null && actualValue != null) {
-        await _updateTargetForTask(task, actualValue);
+      // Roll the actual value up into the assignee's active targets via
+      // a SECURITY DEFINER function (targets RLS is manager-only).
+      if (actualValue != null) {
+        try {
+          await _client.rpc(
+            'record_task_actual_value',
+            params: {'p_task_id': taskId, 'p_actual_value': actualValue},
+          );
+        } catch (e) {
+          // Target roll-up is best-effort; don't block completion.
+          debugPrint('record_task_actual_value failed: $e');
+        }
       }
     }
 
     return updateTask(taskId, updates);
-  }
-
-  Future<void> _updateTargetForTask(Task task, double actualValue) async {
-    final today = DateTime.now().toIso8601String().split('T').first;
-    // Find active target for this member's tasks type
-    final targets = await _client
-        .from('workos_targets')
-        .select()
-        .eq('profile_id', task.assignedTo!)
-        .lte('period_start', today)
-        .gte('period_end', today);
-
-    if (targets.isNotEmpty) {
-      // Update the first matching target's current_value
-      final target = (targets as List).first as Map<String, dynamic>;
-      final currentValue = (target['current_value'] as num?)?.toDouble() ?? 0;
-      final newValue = currentValue + actualValue;
-
-      await _client
-          .from('workos_targets')
-          .update({'current_value': newValue})
-          .eq('id', target['id'] as String);
-    }
   }
 
   /// Delete task
@@ -178,6 +165,16 @@ class TaskDatasource {
         .eq('user_id', userId)
         .single();
     return data['id'] as String;
+  }
+
+  Future<(String, String)> _getMyContext() async {
+    final userId = _client.auth.currentUser!.id;
+    final data = await _client
+        .from('workos_profiles')
+        .select('id, company_id')
+        .eq('user_id', userId)
+        .single();
+    return (data['id'] as String, data['company_id'] as String);
   }
 
   Task _parseTask(Map<String, dynamic> data) {

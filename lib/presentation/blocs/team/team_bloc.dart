@@ -45,6 +45,28 @@ class LoadMemberDetail extends TeamEvent {
   List<Object?> get props => [profileId];
 }
 
+class LoadMemberPerformance extends TeamEvent {
+  final String profileId;
+  LoadMemberPerformance(this.profileId);
+  @override
+  List<Object?> get props => [profileId];
+}
+
+class InviteMember extends TeamEvent {
+  final String email;
+  final String fullName;
+  final String role;
+  final String department;
+  InviteMember({
+    required this.email,
+    required this.fullName,
+    this.role = 'MEMBER',
+    this.department = 'OTHER',
+  });
+  @override
+  List<Object?> get props => [email, fullName, role, department];
+}
+
 // States
 abstract class TeamState extends Equatable {
   @override
@@ -77,6 +99,21 @@ class MemberDetailLoaded extends TeamState {
   List<Object?> get props => [member.id];
 }
 
+class MemberInvited extends TeamState {
+  final String status;
+  final String message;
+  MemberInvited(this.status, this.message);
+  @override
+  List<Object?> get props => [status, message];
+}
+
+class MemberPerformanceLoaded extends TeamState {
+  final Map<String, dynamic> performance;
+  MemberPerformanceLoaded(this.performance);
+  @override
+  List<Object?> get props => [performance['overall']];
+}
+
 class TeamError extends TeamState {
   final String message;
   TeamError(this.message);
@@ -88,15 +125,16 @@ class TeamError extends TeamState {
 class TeamBloc extends Bloc<TeamEvent, TeamState> {
   final TeamRepository _repository;
 
-  TeamBloc({required TeamRepository repository})
-      : _repository = repository,
-        super(TeamInitial()) {
+  TeamBloc({required this._repository})
+      : super(TeamInitial()) {
     on<LoadTeamData>(_onLoadTeamData);
     on<LoadCompanyMembers>(_onLoadCompanyMembers);
     on<CreateTeamEvent>(_onCreateTeam);
     on<AddTeamMember>(_onAddMember);
     on<RemoveTeamMember>(_onRemoveMember);
     on<LoadMemberDetail>(_onLoadMemberDetail);
+    on<InviteMember>(_onInviteMember);
+    on<LoadMemberPerformance>(_onLoadMemberPerformance);
   }
 
   Future<void> _onLoadTeamData(LoadTeamData event, Emitter<TeamState> emit) async {
@@ -156,6 +194,42 @@ class TeamBloc extends Bloc<TeamEvent, TeamState> {
       } else {
         emit(TeamError('Member not found'));
       }
+    } catch (e) {
+      emit(TeamError(e.toString()));
+    }
+  }
+
+  Future<void> _onInviteMember(InviteMember event, Emitter<TeamState> emit) async {
+    emit(TeamLoading());
+    try {
+      final result = await _repository.inviteMember(
+        email: event.email,
+        fullName: event.fullName,
+        role: event.role,
+        department: event.department,
+      );
+      final status = result['status'] as String? ?? 'UNKNOWN';
+      final message = switch (status) {
+        'ADDED' => 'Added to your team successfully',
+        'ALREADY_MEMBER' => 'This person is already in your team',
+        'INVITED' => 'Invite sent! They\'ll join when they sign up',
+        'IN_OTHER_COMPANY' => 'This person already belongs to another company',
+        _ => 'Invite processed',
+      };
+      emit(MemberInvited(status, message));
+      if (status == 'ADDED' || status == 'ALREADY_MEMBER') {
+        add(LoadCompanyMembers());
+      }
+    } catch (e) {
+      emit(TeamError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadMemberPerformance(
+      LoadMemberPerformance event, Emitter<TeamState> emit) async {
+    try {
+      final performance = await _repository.getPerformanceScore(event.profileId);
+      emit(MemberPerformanceLoaded(performance));
     } catch (e) {
       emit(TeamError(e.toString()));
     }

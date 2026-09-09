@@ -21,6 +21,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
   void initState() {
     super.initState();
     context.read<TeamBloc>().add(LoadMemberDetail(widget.profileId));
+    context.read<TeamBloc>().add(LoadMemberPerformance(widget.profileId));
   }
 
   @override
@@ -29,19 +30,17 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       appBar: AppBar(title: const Text('Member Profile')),
       body: BlocBuilder<TeamBloc, TeamState>(
         builder: (context, teamState) {
-          if (teamState is TeamLoading) {
-            return const LoadingState(message: 'Loading member...');
-          }
-
-          if (teamState is TeamError) {
-            return EmptyState(
-              icon: Icons.error_outline,
-              title: 'Failed to load',
-              subtitle: teamState.message,
-            );
-          }
-
           if (teamState is! MemberDetailLoaded) {
+            if (teamState is TeamLoading) {
+              return const LoadingState(message: 'Loading member...');
+            }
+            if (teamState is TeamError) {
+              return EmptyState(
+                icon: Icons.error_outline,
+                title: 'Failed to load',
+                subtitle: teamState.message,
+              );
+            }
             return const SizedBox.shrink();
           }
 
@@ -92,73 +91,126 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
               ),
               const SizedBox(height: 16),
 
-              // This month performance
+              // Real performance for the current month
               Text(
-                'Performance',
+                'Performance (This Month)',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
-
-              // Placeholder for performance overview
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const PerformanceRing(percentage: 82, size: 80, label: 'Overall'),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _PerformanceMetric(label: 'Task Completion', value: '88%', color: AppColors.success),
-                                const SizedBox(height: 4),
-                                _PerformanceMetric(label: 'Target Achievement', value: '76%', color: AppColors.info),
-                                const SizedBox(height: 4),
-                                _PerformanceMetric(label: 'On-time Rate', value: '90%', color: AppColors.success),
-                                const SizedBox(height: 8),
-                                const StatusBadge(status: 'EXCELLENT'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Contact info
-              Text(
-                'Contact',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                child: Column(
-                  children: [
-                    if (member.phone != null)
-                      ListTile(
-                        leading: const Icon(Icons.phone_outlined),
-                        title: Text(member.phone!),
-                      ),
-                    if (member.avatarUrl != null)
-                      ListTile(
-                        leading: const Icon(Icons.image_outlined),
-                        title: Text('Avatar available'),
-                      ),
-                  ],
-                ),
-              ),
+              const _PerformanceSection(),
             ],
           );
         },
       ),
     );
+  }
+}
+
+class _PerformanceSection extends StatelessWidget {
+  const _PerformanceSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<TeamBloc, TeamState>(
+      builder: (context, state) {
+        if (state is TeamLoading) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+          );
+        }
+
+        if (state is! MemberPerformanceLoaded) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(child: Text('No performance data yet.')),
+            ),
+          );
+        }
+
+        final p = state.performance;
+        final overall = ((p['overall'] as num?) ?? 0).toDouble();
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    PerformanceRing(
+                      percentage: overall,
+                      size: 80,
+                      label: 'Overall',
+                      strokeWidth: 8,
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _PerformanceMetric(
+                            label: 'Tasks (${(p['completed'] as num?) ?? 0}/${(p['assigned'] as num?) ?? 0})',
+                            value: '${_fmt(p['task_completion'])}%',
+                            color: AppColors.success,
+                          ),
+                          const SizedBox(height: 4),
+                          _PerformanceMetric(
+                            label: 'Target Achievement',
+                            value: '${_fmt(p['target_achievement'])}%',
+                            color: AppColors.info,
+                          ),
+                          const SizedBox(height: 4),
+                          _PerformanceMetric(
+                            label: 'On-time Rate',
+                            value: '${_fmt(p['on_time_rate'])}%',
+                            color: AppColors.success,
+                          ),
+                          const SizedBox(height: 8),
+                          StatusBadge(status: p['band']?.toString() ?? 'AVERAGE'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Target: ${AppFormatters.formatCurrency(((p['target_total'] as num?) ?? 0).toDouble())}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                    ),
+                    Text(
+                      'Achieved: ${AppFormatters.formatCurrency(((p['target_achieved'] as num?) ?? 0).toDouble())}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _fmt(Object? value) {
+    final n = (value as num?)?.toDouble() ?? 0;
+    return n == n.roundToDouble() ? n.toInt().toString() : n.toStringAsFixed(1);
   }
 }
 

@@ -63,6 +63,11 @@ class AuthRepository {
     );
   }
 
+  /// Attach the freshly-signed-up user to the company that invited them.
+  Future<Map<String, dynamic>> acceptInvite(String email) async {
+    return await _profileDatasource.acceptInvite(email);
+  }
+
   Future<Standup?> getTodayStandup() async {
     final profile = await getCurrentProfile();
     if (profile == null) return null;

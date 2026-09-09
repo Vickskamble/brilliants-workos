@@ -29,4 +29,19 @@ class TeamRepository {
   Future<Profile?> getProfileById(String id) => _profileDatasource.getProfileById(id);
   Future<Profile> updateProfile(String id, Map<String, dynamic> data) => _profileDatasource.updateProfile(id, data);
   Future<void> deactivateProfile(String id) => _profileDatasource.deactivateProfile(id);
+  Future<Map<String, dynamic>> inviteMember({
+    required String email,
+    required String fullName,
+    String role = 'MEMBER',
+    String department = 'OTHER',
+  }) =>
+      _profileDatasource.inviteMember(
+        email: email,
+        fullName: fullName,
+        role: role,
+        department: department,
+      );
+
+  Future<Map<String, dynamic>> getPerformanceScore(String profileId) =>
+      _profileDatasource.getPerformanceScore(profileId);
 }

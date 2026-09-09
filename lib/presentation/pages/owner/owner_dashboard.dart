@@ -5,6 +5,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/stat_card.dart';
 import '../../../core/widgets/performance_ring.dart';
 import '../../blocs/dashboard/dashboard_bloc.dart';
+import '../../blocs/standup/standup_bloc.dart';
 import '../../blocs/auth/auth_bloc.dart';
 
 class OwnerDashboard extends StatelessWidget {
@@ -224,7 +225,11 @@ class OwnerDashboard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+
+                    // Daily Stand-Up
+                    const _StandupSection(),
+                    const SizedBox(height: 16),
 
                     // Quick Actions
                     Text(
@@ -330,6 +335,159 @@ class _QuickAction extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StandupSection extends StatefulWidget {
+  const _StandupSection();
+
+  @override
+  State<_StandupSection> createState() => _StandupSectionState();
+}
+
+class _StandupSectionState extends State<_StandupSection> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<StandupBloc>().add(LoadCompanyStandups());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.wb_sunny_outlined, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Daily Stand-Up',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/morning-plan'),
+                    icon: const Icon(Icons.wb_sunny, size: 18),
+                    label: const Text('Morning Plan'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/evening-report'),
+                    icon: const Icon(Icons.nights_stay, size: 18),
+                    label: const Text('Evening Report'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            BlocBuilder<StandupBloc, StandupState>(
+              builder: (context, state) {
+                if (state is StandupLoading) {
+                  return const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  );
+                }
+
+                if (state is! CompanyStandupsLoaded || state.standups.isEmpty) {
+                  return Text(
+                    'No team members yet.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                  );
+                }
+
+                final done = state.standups
+                    .where((s) => (s.hasPlan || s.hasReport) && s.status == 'SUBMITTED')
+                    .length;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$done of ${state.standups.length} submitted today',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...state.standups.map((s) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  s.fullName,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              _StandupDot(
+                                label: 'Plan',
+                                done: s.hasPlan,
+                                submitted: s.status == 'SUBMITTED',
+                              ),
+                              const SizedBox(width: 8),
+                              _StandupDot(
+                                label: 'Report',
+                                done: s.hasReport,
+                                submitted: s.status == 'SUBMITTED',
+                              ),
+                            ],
+                          ),
+                        )),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StandupDot extends StatelessWidget {
+  final String label;
+  final bool done;
+  final bool submitted;
+
+  const _StandupDot({required this.label, required this.done, required this.submitted});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = done
+        ? (submitted ? AppColors.success : AppColors.warning)
+        : AppColors.textTertiary;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+      ],
     );
   }
 }
