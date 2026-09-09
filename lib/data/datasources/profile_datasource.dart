@@ -105,6 +105,7 @@ class ProfileDatasource {
         'p_name': name,
         'p_slug': slug,
         'p_industry': industry,
+        'p_full_name': _client.auth.currentUser?.userMetadata?['full_name'],
       },
     );
   }

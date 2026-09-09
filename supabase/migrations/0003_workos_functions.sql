@@ -463,7 +463,8 @@ $$;
 create or replace function public.create_workos_company(
   p_name text,
   p_slug text,
-  p_industry text default null
+  p_industry text default null,
+  p_full_name text default null
 )
 returns public.workos_profiles
 language plpgsql
@@ -490,7 +491,8 @@ begin
     auth.uid(),
     v_company_id,
     coalesce(
-      nullif(auth.jwt() ->> 'full_name', ''),
+      nullif(p_full_name, ''),
+      nullif(auth.jwt() -> 'user_metadata' ->> 'full_name', ''),
       'Owner'
     ),
     'OWNER',
@@ -502,6 +504,7 @@ begin
 end;
 $$;
 
+grant execute on function public.create_workos_company(text, text, text, text) to authenticated;
 grant execute on function public.create_workos_company(text, text, text) to authenticated;
 grant execute on function public.get_workos_staff_list() to authenticated;
 grant execute on function public.get_performance_score(uuid, date, date) to authenticated;
