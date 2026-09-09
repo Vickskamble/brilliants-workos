@@ -95,6 +95,13 @@ class AuthCompanyCreateError extends AuthState {
   List<Object?> get props => [message];
 }
 
+class AuthAlreadyExists extends AuthState {
+  final String message;
+  AuthAlreadyExists(this.message);
+  @override
+  List<Object?> get props => [message];
+}
+
 // BLoC
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _repository;
@@ -141,7 +148,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         fullName: event.fullName,
       );
 
-      // After signup, user needs to verify email or create company
       final profile = await _repository.getCurrentProfile();
       if (profile == null) {
         final user = _repository.currentUser;
@@ -154,7 +160,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(Authenticated(profile));
       }
     } on AuthException catch (e) {
-      emit(AuthError(e.message));
+      // If the account already exists, route straight to the right screen
+      // instead of showing a dead-end "User already registered" error.
+      if (e.message.toLowerCase().contains('already registered') ||
+          e.message.toLowerCase().contains('already exists')) {
+        final existing = _repository.currentUser;
+        if (existing != null) {
+          final profile = await _repository.getCurrentProfile();
+          if (profile != null) {
+            emit(Authenticated(profile));
+          } else {
+            emit(AuthNeedsCompany(existing));
+          }
+        } else {
+          emit(AuthAlreadyExists(e.message));
+        }
+      } else {
+        emit(AuthError(e.message));
+      }
     } catch (e) {
       emit(AuthError(e.toString()));
     }

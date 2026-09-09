@@ -42,6 +42,13 @@ class _LoginPageState extends State<LoginPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message), backgroundColor: AppColors.error),
             );
+          } else if (state is AuthAlreadyExists) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Account already exists. Sign in to continue.'),
+                backgroundColor: AppColors.warning,
+              ),
+            );
           }
         },
         child: Center(
